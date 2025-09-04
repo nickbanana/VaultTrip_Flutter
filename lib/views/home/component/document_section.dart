@@ -7,7 +7,7 @@ class DocumentSectionWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       children: [
-        Text('Document Section'),
+        Text('筆記概覽'),
         ConstrainedBox(
           constraints: BoxConstraints(
             maxHeight: 300,
