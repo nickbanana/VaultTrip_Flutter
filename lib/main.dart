@@ -1,6 +1,9 @@
-import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:vault_trip/views/document/document.dart';
+import 'package:vault_trip/views/home/home.dart';
+import 'package:vault_trip/views/point_of_interest/point_of_interest.dart';
+import 'package:vault_trip/views/setting/setting.dart';
+import 'package:vault_trip/views/travel_plan/travel_plan.dart';
 
 void main() {
   runApp(MyApp());
@@ -11,92 +14,63 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => MyAppState(),
-      child: MaterialApp(
-        title: 'Vault Trip',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
-        ),
-        home: MyHomePage(),
+    return MaterialApp(
+      title: 'Vault Trip',
+      themeMode: ThemeMode.dark,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
       ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+      ),
+      home: const MainPage(),
     );
   }
 }
 
-class MyAppState extends ChangeNotifier {
-  var current = WordPair.random();
-  void getNext() {
-    current = WordPair.random();
-    notifyListeners();
-  }
-  var favorites = <WordPair>[];
-  void toggleFavorite(WordPair pair) {
-    if (favorites.contains(pair)) {
-      favorites.remove(pair);
-    } else {
-      favorites.add(pair);
-    }
-    notifyListeners();
-  }
-  bool isFavorite(WordPair pair) {
-    return favorites.contains(pair);
-  }
+class MainPage extends StatefulWidget {
+  const MainPage({super.key});
 
+  @override
+  State<StatefulWidget> createState() => MainPageState();
 }
 
-class MyHomePage extends StatelessWidget {
+class MainPageState extends State<MainPage> {
+  int _selectedIndex = 0;
+  final List<Widget> _pages = [
+    HomeWidget(),
+    TravelPlanWidget(),
+    PointOfInterestWidget(),
+    DocumentWidget(),
+    SettingWidget(),
+  ];
+  final List<String> _titles = [
+    '首頁',
+    '行程導覽',
+    '景點導覽',
+    '筆記瀏覽',
+    '設定',
+  ];
+
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    var pair = appState.current;
-
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            BigCard(pair: pair),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ElevatedButton(onPressed: () {
-                  appState.toggleFavorite(pair);
-                }, child: Text(appState.isFavorite(pair) ? 'Unfavorite' : 'Favorite')),
-                ElevatedButton(
-                  onPressed: () {
-                    appState.getNext();
-                  },
-                  child: Text('Next'),
-                ),
-              ],
-            )
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class BigCard extends StatelessWidget {
-  const BigCard({
-    super.key,
-    required this.pair,
-  });
-
-  final WordPair pair;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textStyle = theme.textTheme.displayMedium!.copyWith(
-      color: theme.colorScheme.onPrimary,
-    );
-    return Card(
-      color: theme.colorScheme.primary,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Text(pair.asLowerCase, style: textStyle, semanticsLabel: '${pair.first} ${pair.second}',),
+      appBar: AppBar(title: Text(_titles[_selectedIndex])),
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: NavigationBar(
+        destinations: [
+          NavigationDestination(icon: Icon(Icons.home), selectedIcon: Icon(Icons.home_outlined), label: '首頁'),
+          NavigationDestination(icon: Icon(Icons.calendar_today), selectedIcon: Icon(Icons.calendar_today_outlined), label: '行程導覽'),
+          NavigationDestination(icon: Icon(Icons.map), selectedIcon: Icon(Icons.map_outlined), label: '景點導覽'),
+          NavigationDestination(icon: Icon(Icons.notes), selectedIcon: Icon(Icons.notes_outlined), label: '筆記瀏覽'),
+          NavigationDestination(icon: Icon(Icons.settings), selectedIcon: Icon(Icons.settings_outlined), label: '設定'),
+        ],
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (int index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
       ),
     );
   }
