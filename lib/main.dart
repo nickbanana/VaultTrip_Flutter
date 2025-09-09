@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:vault_trip/providers/vault_provider.dart';
 import 'package:vault_trip/views/document/document.dart';
 import 'package:vault_trip/views/home/home.dart';
 import 'package:vault_trip/views/point_of_interest/point_of_interest.dart';
@@ -14,16 +16,20 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Vault Trip',
-      themeMode: ThemeMode.dark,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+    return ChangeNotifierProvider(
+      create: (context) => VaultProvider(),
+      child: MaterialApp(
+        title: 'Vault Trip',
+        themeMode: ThemeMode.dark,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+        ),
+        darkTheme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+          useMaterial3: true,
+        ),
+        home: const MainPage(),
       ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
-      ),
-      home: const MainPage(),
     );
   }
 }
@@ -44,26 +50,38 @@ class MainPageState extends State<MainPage> {
     DocumentWidget(),
     SettingWidget(),
   ];
-  final List<String> _titles = [
-    '首頁',
-    '行程導覽',
-    '景點導覽',
-    '筆記瀏覽',
-    '設定',
-  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_titles[_selectedIndex])),
       body: _pages[_selectedIndex],
       bottomNavigationBar: NavigationBar(
         destinations: [
-          NavigationDestination(icon: Icon(Icons.home), selectedIcon: Icon(Icons.home_outlined), label: '首頁'),
-          NavigationDestination(icon: Icon(Icons.calendar_today), selectedIcon: Icon(Icons.calendar_today_outlined), label: '行程導覽'),
-          NavigationDestination(icon: Icon(Icons.map), selectedIcon: Icon(Icons.map_outlined), label: '景點導覽'),
-          NavigationDestination(icon: Icon(Icons.notes), selectedIcon: Icon(Icons.notes_outlined), label: '筆記瀏覽'),
-          NavigationDestination(icon: Icon(Icons.settings), selectedIcon: Icon(Icons.settings_outlined), label: '設定'),
+          NavigationDestination(
+            icon: Icon(Icons.home),
+            selectedIcon: Icon(Icons.home_outlined),
+            label: '首頁',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calendar_today),
+            selectedIcon: Icon(Icons.calendar_today_outlined),
+            label: '行程導覽',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.map),
+            selectedIcon: Icon(Icons.map_outlined),
+            label: '景點導覽',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.notes),
+            selectedIcon: Icon(Icons.notes_outlined),
+            label: '筆記瀏覽',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings),
+            selectedIcon: Icon(Icons.settings_outlined),
+            label: '設定',
+          ),
         ],
         selectedIndex: _selectedIndex,
         onDestinationSelected: (int index) {

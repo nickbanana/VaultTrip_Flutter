@@ -8,12 +8,15 @@ class HomeWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(child: TravelPlanSectionWidget()),
-        Expanded(child: PointOfInterestSectionWidget()),
-        Expanded(child: DocumentSectionWidget()),
-      ],
+    return Scaffold(
+      appBar: AppBar(title: const Text('首頁')),
+      body: Column(
+        children: [
+          Expanded(child: TravelPlanSectionWidget()),
+          Expanded(child: PointOfInterestSectionWidget()),
+          Expanded(child: DocumentSectionWidget()),
+        ],
+      ),
     );
   }
 }

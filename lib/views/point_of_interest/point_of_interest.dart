@@ -5,8 +5,11 @@ class PointOfInterestWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Text('point_of_interest'),
+    return Scaffold(
+      appBar: AppBar(title: const Text('景點導覽')),
+      body: const Center(
+        child: Text('景點導覽'),
+      ),
     );
   }
 }

@@ -5,8 +5,11 @@ class TravelPlanWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Text('travel_plan'),
+    return Scaffold(
+      appBar: AppBar(title: const Text('行程導覽')),
+      body: const Center(
+        child: Text('行程導覽'),
+      ),
     );
   }
 }
