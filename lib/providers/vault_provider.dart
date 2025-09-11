@@ -11,9 +11,9 @@ class VaultProvider with ChangeNotifier {
   String? _vaultPath;
   String? get vaultPath => _vaultPath;
 
-  // -- 導覽堆疊 --
+  /// -- 導覽堆疊 --
   final List<String> _navigationStack = [];
-  // 取得目前的路徑
+  /// 取得目前的路徑
   String? get currentPath => _navigationStack.isNotEmpty ? _navigationStack.last : null;
 
   bool get canNavigateBack => _navigationStack.length > 1;
@@ -23,6 +23,19 @@ class VaultProvider with ChangeNotifier {
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+
+  // -- 筆記管理 --
+  // 當前選擇檔案的路徑
+  String? _selectedNotePath;
+  String? get selectedNotePath => _selectedNotePath;
+
+  // 當前選擇檔案的內容
+  String? _selectedNoteContent;
+  String? get selectedNoteContent => _selectedNoteContent;
+
+  // 是否正在載入筆記
+  bool _isNoteLoading = false;
+  bool get isNoteLoading => _isNoteLoading;
 
   // Key for storing the vault path in shared preferences
   static const String _vaultPathKey = 'vault_path';
@@ -77,7 +90,7 @@ class VaultProvider with ChangeNotifier {
     }
   }
 
-  // 清除儲存的路徑
+  /// 清除儲存的路徑
   Future<void> clearVaultPath() async {
     _vaultPath = null;
     _currentFiles = [];
@@ -85,7 +98,7 @@ class VaultProvider with ChangeNotifier {
     await prefs.remove(_vaultPathKey);
     notifyListeners();
   }
-  // 列出檔案
+  /// 列出檔案
   Future<void> _updateFileList() async {
     if (currentPath == null) return;
     _setLoading(true);
@@ -119,6 +132,35 @@ class VaultProvider with ChangeNotifier {
       });
       _setLoading(false);
     }
+  }
+
+  /// 載入筆記內容
+  Future<void> loadNoteContent(String filePath) async {
+    _isNoteLoading = true;
+    _selectedNotePath = filePath;
+    _selectedNoteContent = null;
+    notifyListeners();
+
+    try {
+      final file = File(filePath);
+      if (await file.exists()) {
+        _selectedNoteContent = await file.readAsString();
+      } else {
+        throw Exception('檔案不存在');
+      }
+    } catch (e) {
+      print ('Error loading note content: $e');
+      _selectedNoteContent = '無法讀取檔案內容\n\n$e';
+    }
+
+    _isNoteLoading = false;
+    notifyListeners();
+  }
+
+  void clearSelectedNote() {
+    _selectedNotePath = null;
+    _selectedNoteContent = null;
+    notifyListeners();
   }
   
   void _setLoading(bool loading) {
