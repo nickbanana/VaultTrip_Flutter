@@ -1,44 +1,49 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
-import 'package:provider/provider.dart';
-import 'package:vault_trip/providers/vault_provider.dart';
-import 'package:vault_trip/views/document/note_viewer_screen.dart';
+import '../../providers/vault_provider.dart';
+import 'note_viewer_screen.dart';
 
-class DocumentWidget extends StatelessWidget {
-  const DocumentWidget({super.key});
+class DocumentWidget extends ConsumerWidget {
+  final bool isSelectMode;
+  const DocumentWidget({
+    super.key,
+    this.isSelectMode = false,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    final provider = context.watch<VaultProvider>();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final vaultState = ref.watch(vaultProvider);
+    final vaultNotifier = ref.read(vaultProvider.notifier);
+    // final provider = context.watch<VaultProvider>();
     return PopScope(
-      canPop: !provider.canNavigateBack,
+      canPop: !vaultState.canNavigateBack,
       onPopInvokedWithResult: (bool didPop, result) {
         if (!didPop) {
-          provider.navigateBack();
+          vaultNotifier.navigateBack();
         }
       },
       child: Scaffold(
         appBar: AppBar(
-          leading: provider.canNavigateBack
+          leading: vaultState.canNavigateBack
               ? IconButton(
                   icon: const Icon(Icons.arrow_back),
-                  onPressed: () => provider.navigateBack(),
+                  onPressed: () => vaultNotifier.navigateBack(),
                 )
               : null,
           title: Text(
-            provider.currentPath != null
-                ? p.basename(provider.currentPath!)
-                : '筆記瀏覽',
+            vaultState.currentPath != null
+                ? p.basename(vaultState.currentPath!)
+                : isSelectMode ? '選擇模板檔案' : '筆記瀏覽',
           ),
         ),
-        body: provider.isLoading
+        body: vaultState.isLoading
             ? const Center(child: CircularProgressIndicator())
             : ListView.builder(
-                itemCount: provider.currentFiles.length,
+                itemCount: vaultState.currentFiles.length,
                 itemBuilder: (context, index) {
-                  final entity = provider.currentFiles[index];
+                  final entity = vaultState.currentFiles[index];
                   final isDirectory = entity is Directory;
 
                   return ListTile(
@@ -49,14 +54,13 @@ class DocumentWidget extends StatelessWidget {
                     onTap: () {
                       if (isDirectory) {
                         // 如果是資料夾，呼叫導覽方法
-                        provider.navigateToDirectory(entity.path);
+                        vaultNotifier.navigateToDirectory(entity.path);
+                      } else if (isSelectMode) {
+                        Navigator.of(context).pop(entity.path);
                       } else {
-                        context.read<VaultProvider>().loadNoteContent(
-                          entity.path,
-                        );
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => const NoteViewerScreen(),
+                            builder: (_) => NoteViewerScreen(filePath: entity.path),
                           ),
                         );
                       }

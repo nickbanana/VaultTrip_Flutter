@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:vault_trip/providers/vault_provider.dart';
 import 'package:vault_trip/views/document/document.dart';
 import 'package:vault_trip/views/home/home.dart';
 import 'package:vault_trip/views/point_of_interest/point_of_interest.dart';
 import 'package:vault_trip/views/setting/setting.dart';
 import 'package:vault_trip/views/travel_plan/travel_plan.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -16,20 +15,17 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => VaultProvider(),
-      child: MaterialApp(
-        title: 'Vault Trip',
-        themeMode: ThemeMode.dark,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
-        ),
-        darkTheme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
-          useMaterial3: true,
-        ),
-        home: const MainPage(),
+    return MaterialApp(
+      title: 'Vault Trip',
+      themeMode: ThemeMode.dark,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
       ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+        useMaterial3: true,
+      ),
+      home: const MainPage(),
     );
   }
 }

@@ -1,176 +1,107 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:io';
+import 'settings_provider.dart';
 
+@immutable
+class VaultState {
+  final bool isLoading;
+  final List<String> navigationStack;
+  final List<FileSystemEntity> currentFiles;
+  String? get currentPath => navigationStack.isNotEmpty ? navigationStack.last : null;
+  bool get canNavigateBack => navigationStack.length > 1;
+  const VaultState({
+    required this.isLoading,
+    required this.navigationStack,
+    required this.currentFiles,
+  });
 
-class VaultProvider with ChangeNotifier {
-  // -- 狀態 --
-  String? _vaultPath;
-  String? get vaultPath => _vaultPath;
-
-  /// -- 導覽堆疊 --
-  final List<String> _navigationStack = [];
-  /// 取得目前的路徑
-  String? get currentPath => _navigationStack.isNotEmpty ? _navigationStack.last : null;
-
-  bool get canNavigateBack => _navigationStack.length > 1;
-
-  List<FileSystemEntity> _currentFiles = [];
-  List<FileSystemEntity> get currentFiles => _currentFiles;
-
-  bool _isLoading = false;
-  bool get isLoading => _isLoading;
-
-  // -- 筆記管理 --
-  // 當前選擇檔案的路徑
-  String? _selectedNotePath;
-  String? get selectedNotePath => _selectedNotePath;
-
-  // 當前選擇檔案的內容
-  String? _selectedNoteContent;
-  String? get selectedNoteContent => _selectedNoteContent;
-
-  // 是否正在載入筆記
-  bool _isNoteLoading = false;
-  bool get isNoteLoading => _isNoteLoading;
-
-  // Key for storing the vault path in shared preferences
-  static const String _vaultPathKey = 'vault_path';
-
-  VaultProvider() {
-    loadVaultPath();
-  }
-
-  // -- 路徑管理 --
-  // 載入儲存的路徑
-  Future<void> loadVaultPath() async {
-    _setLoading(true);
-    final prefs = SharedPreferencesAsync();
-    final savedPath = await prefs.getString(_vaultPathKey);
-    if (savedPath != null && await Directory(savedPath).exists()) {
-      _vaultPath = savedPath;
-      initializeStackWithPath(_vaultPath!);
-      await _updateFileList();
-    }
-    _setLoading(false);
-  }
-
-  // 讓使用者選擇資料夾
-  Future<void> selectAndSaveVaultPath() async {
-    String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
-      dialogTitle: '選擇資料夾',
-      lockParentWindow: true,
+  factory VaultState.initial() {
+    return const VaultState(
+      isLoading: false,
+      navigationStack: [],
+      currentFiles: [],
     );
+  }
 
-    if (selectedDirectory != null) {
-      _vaultPath = selectedDirectory;
-      final prefs = SharedPreferencesAsync();
-      await prefs.setString(_vaultPathKey, _vaultPath!);
-      initializeStackWithPath(_vaultPath!);
+  VaultState copyWith({
+    bool? isLoading,
+    List<String>? navigationStack,
+    List<FileSystemEntity>? currentFiles,
+  }) {
+    return VaultState(
+      isLoading: isLoading ?? this.isLoading,
+      navigationStack: navigationStack ?? this.navigationStack,
+      currentFiles: currentFiles ?? this.currentFiles,
+    );
+  }
+}
+
+class VaultNotifier extends StateNotifier<VaultState> {
+  final String? _vaultPath;
+
+  VaultNotifier(this._vaultPath) : super(VaultState.initial()) {
+    if (_vaultPath != null && _vaultPath.isNotEmpty) {
+      _initialLoad(_vaultPath);
+    }
+  }
+
+  void _initialLoad(String path) {
+    state = state.copyWith(
+      navigationStack: [path],
+    );
+    _updateFileList();
+  }
+
+  Future<void> navigateToDirectory(String directoryPath) async {
+    if (await FileSystemEntity.isDirectory(directoryPath)) {
+      final newStack = List<String>.from(state.navigationStack)..add(directoryPath);
+      state = state.copyWith(navigationStack: newStack);
       await _updateFileList();
     }
   }
 
-  // -- 瀏覽邏輯 --
-  Future<void> navigateToDirectory(String path) async {
-    if (await FileSystemEntity.isDirectory(path)) {
-      _navigationStack.add(path);
-      await _updateFileList();
-    }
-  }
-
-  // 向上瀏覽
   Future<void> navigateBack() async {
-    if (canNavigateBack) {
-      _navigationStack.removeLast();
+    if (state.canNavigateBack) {
+      final newStack = List<String>.from(state.navigationStack)..removeLast();
+      state = state.copyWith(navigationStack: newStack);
       await _updateFileList();
     }
   }
 
-  /// 清除儲存的路徑
-  Future<void> clearVaultPath() async {
-    _vaultPath = null;
-    _currentFiles = [];
-    final prefs = SharedPreferencesAsync();
-    await prefs.remove(_vaultPathKey);
-    notifyListeners();
-  }
-  /// 列出檔案
   Future<void> _updateFileList() async {
-    if (currentPath == null) return;
-    _setLoading(true);
-    final directory = Directory(currentPath!);
-    if (await directory.exists()) {
-      final allEntities = await directory.list().toList();
-      print('--- Debug: Raw entities found in $currentPath ---');
-      if (allEntities.isEmpty) {
-        print('Warning: The directory is empty or could not be read.');
-      } else {
-        for (var entity in allEntities) {
-          print('Found: ${entity.path}, isDirectory: ${entity is Directory}');
-        }
-      }
-      // 你可以在這裡做排序或過濾，例如只顯示 .md 檔案和資料夾
-      // show only .md files and folders
-      _currentFiles = allEntities.where((entity) {
-        if (p.basename(entity.path).startsWith('.')) {
-          return false;
-        }
-        return entity is Directory || entity.path.endsWith('.md');
-      }).toList();
-      _currentFiles.sort((a, b) {
-          // 簡單排序：資料夾在前，檔案在後
-          bool aIsDir = a is Directory;
-          bool bIsDir = b is Directory;
-          if (aIsDir != bIsDir) {
-              return aIsDir ? -1 : 1;
-          }
-          return p.basename(a.path).toLowerCase().compareTo(p.basename(b.path).toLowerCase());
-      });
-      _setLoading(false);
-    }
-  }
+    if (state.currentPath == null) return;
 
-  /// 載入筆記內容
-  Future<void> loadNoteContent(String filePath) async {
-    _isNoteLoading = true;
-    _selectedNotePath = filePath;
-    _selectedNoteContent = null;
-    notifyListeners();
-
+    state = state.copyWith(isLoading: true);
+    List<FileSystemEntity> files = [];
     try {
-      final file = File(filePath);
-      if (await file.exists()) {
-        _selectedNoteContent = await file.readAsString();
-      } else {
-        throw Exception('檔案不存在');
+      final directory = Directory(state.currentPath!);
+      if (await directory.exists()) {
+        final allEntities = await directory.list().toList();
+        files = allEntities.where((entity) {
+          if (p.basename(entity.path).startsWith('.')) return false;
+          return entity is Directory || entity.path.endsWith('.md');
+        }).toList();
+
+        files.sort((a, b) {
+          final aIsDir = a is Directory;
+          final bIsDir = b is Directory;
+          if (aIsDir != bIsDir) return aIsDir ? -1 : 1;
+          return p.basename(a.path).toLowerCase().compareTo(p.basename(b.path).toLowerCase());
+        });
       }
     } catch (e) {
-      print ('Error loading note content: $e');
-      _selectedNoteContent = '無法讀取檔案內容\n\n$e';
+      print('Error updating file list: $e');
+      // 可以考慮在這裡設定一個錯誤狀態
     }
-
-    _isNoteLoading = false;
-    notifyListeners();
+    state = state.copyWith(isLoading: false, currentFiles: files);
   }
-
-  void clearSelectedNote() {
-    _selectedNotePath = null;
-    _selectedNoteContent = null;
-    notifyListeners();
-  }
-  
-  void _setLoading(bool loading) {
-    _isLoading = loading;
-    notifyListeners();
-  }
-
-  void initializeStackWithPath(String path) {
-    _navigationStack.clear();
-    _navigationStack.add(path);
-  }
-
 }
+
+final vaultProvider = StateNotifierProvider<VaultNotifier, VaultState>((ref) {
+  final settings = ref.watch(settingsProvider);
+  final vaultPath = settings.vaultPath;
+  return VaultNotifier(vaultPath);
+});
