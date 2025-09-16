@@ -10,7 +10,8 @@ class VaultState {
   final bool isLoading;
   final List<String> navigationStack;
   final List<FileSystemEntity> currentFiles;
-  String? get currentPath => navigationStack.isNotEmpty ? navigationStack.last : null;
+  String? get currentPath =>
+      navigationStack.isNotEmpty ? navigationStack.last : null;
   bool get canNavigateBack => navigationStack.length > 1;
   const VaultState({
     required this.isLoading,
@@ -39,25 +40,30 @@ class VaultState {
   }
 }
 
-class VaultNotifier extends StateNotifier<VaultState> {
-  final String? _vaultPath;
-
-  VaultNotifier(this._vaultPath) : super(VaultState.initial()) {
-    if (_vaultPath != null && _vaultPath.isNotEmpty) {
-      _initialLoad(_vaultPath);
-    }
-  }
-
-  void _initialLoad(String path) {
-    state = state.copyWith(
-      navigationStack: [path],
+class VaultNotifier extends Notifier<VaultState> {
+  @override
+  VaultState build() {
+    final settings = ref.watch(settingsProvider);
+    return settings.when(
+      data: (settings) {
+        final vaultPath = settings.vaultPath;
+        if (vaultPath != null && vaultPath.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {  
+            _updateFileList();  
+          });
+          return VaultState.initial().copyWith(navigationStack: [vaultPath]);
+        }
+        return VaultState.initial();
+      },
+      loading: () => VaultState.initial().copyWith(isLoading: true),
+      error: (e, s) => VaultState.initial().copyWith(isLoading: false),
     );
-    _updateFileList();
   }
 
   Future<void> navigateToDirectory(String directoryPath) async {
     if (await FileSystemEntity.isDirectory(directoryPath)) {
-      final newStack = List<String>.from(state.navigationStack)..add(directoryPath);
+      final newStack = List<String>.from(state.navigationStack)
+        ..add(directoryPath);
       state = state.copyWith(navigationStack: newStack);
       await _updateFileList();
     }
@@ -89,7 +95,10 @@ class VaultNotifier extends StateNotifier<VaultState> {
           final aIsDir = a is Directory;
           final bIsDir = b is Directory;
           if (aIsDir != bIsDir) return aIsDir ? -1 : 1;
-          return p.basename(a.path).toLowerCase().compareTo(p.basename(b.path).toLowerCase());
+          return p
+              .basename(a.path)
+              .toLowerCase()
+              .compareTo(p.basename(b.path).toLowerCase());
         });
       }
     } catch (e) {
@@ -100,8 +109,6 @@ class VaultNotifier extends StateNotifier<VaultState> {
   }
 }
 
-final vaultProvider = StateNotifierProvider<VaultNotifier, VaultState>((ref) {
-  final settings = ref.watch(settingsProvider);
-  final vaultPath = settings.vaultPath;
-  return VaultNotifier(vaultPath);
-});
+final vaultProvider = NotifierProvider<VaultNotifier, VaultState>(
+  VaultNotifier.new,
+);

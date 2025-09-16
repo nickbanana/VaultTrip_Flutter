@@ -4,14 +4,14 @@ class SettingsState {
   final String? itineraryTemplatePath;
   final String? itineraryDayTemplatePath;
   final String? locationListTemplatePath;
-  final String? locationTemplatePath;
+  final String? locationItemTemplatePath;
   const SettingsState({
     this.isLoading = true,
     this.vaultPath,
     this.itineraryTemplatePath,
     this.itineraryDayTemplatePath,
     this.locationListTemplatePath,
-    this.locationTemplatePath,
+    this.locationItemTemplatePath,
   });
 
   SettingsState copyWith({
@@ -20,7 +20,7 @@ class SettingsState {
     String? itineraryTemplatePath,
     String? itineraryDayTemplatePath,
     String? locationListTemplatePath,
-    String? locationTemplatePath,
+    String? locationItemTemplatePath,
   }) {
     return SettingsState(
       isLoading: isLoading ?? this.isLoading,
@@ -28,7 +28,7 @@ class SettingsState {
       itineraryTemplatePath: itineraryTemplatePath ?? this.itineraryTemplatePath,
       itineraryDayTemplatePath: itineraryDayTemplatePath ?? this.itineraryDayTemplatePath,
       locationListTemplatePath: locationListTemplatePath ?? this.locationListTemplatePath,
-      locationTemplatePath: locationTemplatePath ?? this.locationTemplatePath,
+      locationItemTemplatePath: locationItemTemplatePath ?? this.locationItemTemplatePath,
     );
   }
 }

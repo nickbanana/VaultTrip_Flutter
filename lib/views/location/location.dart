@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-
-class PointOfInterestWidget extends StatelessWidget {
-  const PointOfInterestWidget({super.key});
+/// 景點導覽頁面 顯示景點區域列表
+class LocationWidget extends StatelessWidget {
+  const LocationWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
