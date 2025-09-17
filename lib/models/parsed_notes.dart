@@ -14,7 +14,7 @@ abstract class ParsedNote {
 class ItineraryNote extends ParsedNote {
   // 直接儲存解析器產出的 Map
   final Map<String, dynamic> data;
-
+  final String type = 'itinerary';
   ItineraryNote({
     required super.filePath,
     required super.title,
@@ -28,7 +28,7 @@ class ItineraryNote extends ParsedNote {
 class LocationNote extends ParsedNote {
   // 直接儲存解析器產出的 Map
   final Map<String, dynamic> data;
-
+  final String type = 'location';
   LocationNote({
     required super.filePath,
     required super.title,
@@ -40,5 +40,6 @@ class LocationNote extends ParsedNote {
 @immutable
 class GenericNote extends ParsedNote {
     final String rawContent;
+    final String type = 'generic';
     GenericNote({required super.filePath, required super.title, required this.rawContent});
 }

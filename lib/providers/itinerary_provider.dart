@@ -7,6 +7,7 @@ import '../models/parsed_notes.dart';
 import '../services/markdown_parser_service.dart';
 import 'template_provider.dart';
 import 'all_vault_files_provider.dart';
+import 'package:path/path.dart' as p;
 
 // 狀態：載入中 + 筆記列表
 class ItineraryState {
@@ -28,9 +29,11 @@ Future<List<ItineraryNote>> _parseItinerariesInIsolate(Map<String, dynamic> args
   final List<ItineraryNote> foundNotes = [];
   for (final file in allFiles.where((f) => f.path.endsWith('.md'))) {
     final relativePath = file.path.replaceFirst('${args['vaultPath']}/', '');
-    if (templateRelativePaths.contains(relativePath)) continue; // 跳過此模板檔案
+    if (templateRelativePaths.contains(relativePath)) {
+      continue; // 跳過此模板檔案
+    }
     final content = await file.readAsString();
-    final isItinerary = itineraryBlueprint.rules.any((rule) => content.contains('## ${rule.key}'));
+    final isItinerary = itineraryBlueprint.rules.any((rule) => content.contains('## ${rule.key}')) && itineraryBlueprint.fingerprintRegex!.hasMatch(content);
     
     if (isItinerary) {
       final title = file.path.split('/').last.replaceAll('.md', '');
@@ -42,6 +45,7 @@ Future<List<ItineraryNote>> _parseItinerariesInIsolate(Map<String, dynamic> args
       foundNotes.add(ItineraryNote(filePath: file.path, title: title, data: data));
     }
   }
+  foundNotes.sort((a, b) => p.basename(a.filePath).compareTo(p.basename(b.filePath)));
   return foundNotes;
 }
 
@@ -50,7 +54,6 @@ class ItineraryNotifier extends Notifier<ItineraryState> {
   ItineraryState build() => const ItineraryState();
   Future<void> loadAll() async {
     state = const ItineraryState(isLoading: true, notes: []);
-    final service = ref.read(markdownServiceProvider);
     final allFiles = await ref.read(allVaultFilesProvider.future);
     final allBlueprints = await ref.read(templateProvider.future);
     final settings = await ref.read(settingsProvider.future);
@@ -70,11 +73,12 @@ class ItineraryNotifier extends Notifier<ItineraryState> {
       'allFiles': allFiles,
       'allBlueprints': allBlueprints,
       'templateRelativePaths': templateRelativePaths,
+      'vaultPath': vaultPath,
     });
     state = ItineraryState(isLoading: false, notes: foundNotes);
   }
 }
-
+/// @deprecated
 final itineraryProvider = NotifierProvider<ItineraryNotifier, ItineraryState>(
   ItineraryNotifier.new,
 );

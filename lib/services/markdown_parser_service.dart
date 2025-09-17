@@ -1,5 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vault_trip/models/parsed_notes.dart';
 import '../models/parsing_models.dart';
+import 'dart:io';
+import 'package:path/path.dart' as p;
 
 class MarkdownParserService {
   // TODO: 目前寫死，但未來可以在設定調整
@@ -57,6 +60,7 @@ class MarkdownParserService {
         subTemplatePlaceholder: '{{多筆行程單日模板}}',
         subTemplateName: '行程單日模板',
       ),
+      fingerprintRegex: blueprints['行程單日模板']!.itemRegex,
     );
 
     return blueprints;
@@ -67,80 +71,122 @@ class MarkdownParserService {
   // ===================================================================
   Map<String, dynamic> parseNote({
     required String noteContent,
-    required TemplateBlueprint blueprint, // 使用哪個藍圖來解析
-    required Map<String, TemplateBlueprint> allBlueprints, // 需要所有藍圖來查找子模板
+    required TemplateBlueprint blueprint,
+    required Map<String, TemplateBlueprint> allBlueprints,
   }) {
     final Map<String, dynamic> result = {};
     final lines = noteContent.split('\n');
 
-    String? currentKey;
-    List<String> currentBlockContent = [];
-    ParsingRule? currentRule;
+    // --- 狀態機的狀態變數 ---
+    String? currentH2Key;
+    ParsingRule? currentH2Rule;
+    
+    // 用於儲存單一區塊的內容
+    List<String> currentBlockContent = []; 
+    // 用於儲存複合區塊的子項目列表
+    List<Map<String, dynamic>> currentItemsList = []; 
+    // 用於儲存當前正在處理的子項目
+    Map<String, dynamic>? currentItemData; 
+    List<String> currentItemContentLines = [];
 
-    void processBlock() {
-      if (currentKey == null) return;
-
-      final blockText = currentBlockContent.join('\n').trim();
-
-      if (currentRule?.subTemplateName != null) {
-        // --- 處理複合區塊 (e.g., 景點列表) ---
-        final subTemplate = allBlueprints[currentRule!.subTemplateName!];
-        if (subTemplate?.itemRegex != null) {
-          final matches = subTemplate!.itemRegex!.allMatches(blockText);
-          final List<Map<String, String>> items = [];
-          for (final match in matches) {
-            final Map<String, String> itemData = {};
-            for (int i = 0; i < subTemplate.itemPlaceholderNames!.length; i++) {
-              final key = subTemplate.itemPlaceholderNames![i];
-              final value = match.group(i + 1)?.trim() ?? '';
-              itemData[key] = value;
-            }
-            items.add(itemData);
-          }
-          result[currentKey] = items;
-        }
-      } else {
-        // --- 處理單一區塊 (e.g., 航班資訊) ---
-        result[currentKey] = blockText;
+    // --- 狀態提交輔助函式 ---
+    void commitCurrentItem() {
+      if (currentItemData != null) {
+        currentItemData!['內容'] = currentItemContentLines.join('\n').trim();
+        currentItemsList.add(currentItemData!);
+        currentItemData = null;
+        currentItemContentLines = [];
       }
-
-      currentBlockContent = [];
     }
 
+    void commitCurrentH2Section() {
+      commitCurrentItem(); // 先提交最後一個子項目
+      if (currentH2Key != null) {
+        if (currentH2Rule?.subTemplateName != null) {
+          result[currentH2Key!] = List.from(currentItemsList);
+        } else {
+          result[currentH2Key!] = currentBlockContent.join('\n').trim();
+        }
+      }
+      currentBlockContent = [];
+      currentItemsList = [];
+    }
+    
+    // --- 單遍掃描主迴圈 ---
     for (final line in lines) {
       final h2Match = RegExp(r'^##\s+(.*)').firstMatch(line);
       final h3Match = RegExp(r'^###\s+(.*)').firstMatch(line);
 
-      ParsingRule? foundRule;
-      String? foundKey;
-
       if (h2Match != null) {
-        foundKey = h2Match.group(1)!.trim();
-        foundRule = blueprint.rules.firstWhere(
-          (r) => r.level == 2 && r.key == foundKey,
-          orElse: () => ParsingRule(level: 2, key: foundKey!),
+        // 遇到新的 H2，代表一個區塊的開始
+        commitCurrentH2Section(); // 提交上一個 H2 區塊的全部內容
+        
+        currentH2Key = h2Match.group(1)!.trim();
+        currentH2Rule = blueprint.rules.firstWhere(
+          (r) => r.level == 2 && r.key == currentH2Key,
+          orElse: () => ParsingRule(level: 2, key: currentH2Key!),
         );
-      } else if (h3Match != null) {
-        // 這裡可以擴充 H3 的邏輯，目前我們的模板 H3 只在子項目中
-      }
 
-      if (foundRule != null) {
-        // 遇到一個新的標題，先處理上一個區塊的內容
-        processBlock();
-        // 開始一個新區塊
-        currentKey = foundKey;
-        currentRule = foundRule;
-      } else if (currentKey != null) {
-        // 如果還在當前區塊，就把內容加進去
-        currentBlockContent.add(line);
+      } else if (h3Match != null && currentH2Rule?.subTemplateName != null) {
+        // 【核心修正】在主迴圈中直接處理 H3
+        commitCurrentItem(); // 提交上一個子項目
+        
+        final subTemplate = allBlueprints[currentH2Rule!.subTemplateName!];
+        if (subTemplate?.itemRegex != null) {
+          final itemHeaderMatch = subTemplate!.itemRegex!.firstMatch(line);
+          if (itemHeaderMatch != null) {
+            currentItemData = {};
+            for (int i = 0; i < subTemplate.itemPlaceholderNames!.length; i++) {
+              final key = subTemplate.itemPlaceholderNames![i];
+              final value = itemHeaderMatch.group(i + 1)?.trim() ?? '';
+              currentItemData![key] = value;
+            }
+          }
+        }
+      } else if (currentH2Key != null) {
+        // 既不是 H2 也不是 H3，是內容行
+        if (currentItemData != null) {
+          // 如果當前正在處理一個子項目，內容就屬於它
+          currentItemContentLines.add(line);
+        } else {
+          // 否則，內容屬於當前的 H2 區塊
+          currentBlockContent.add(line);
+        }
       }
     }
-
-    // 處理文件最後一個區塊的內容
-    processBlock();
+    
+    commitCurrentH2Section(); // 處理文件最後一個區塊
 
     return result;
   }
+
+  // ===================================================================
+  // == Phase 3: 將解析後的結果轉換成 ParsedNote 物件 (Parse Result to ParsedNote) ==
+  // ===================================================================
+  Future<ParsedNote> parseFile(String filePath, Map<String, TemplateBlueprint> allBlueprints) async {
+    final file = File(filePath);
+    if (!await file.exists()) {
+      throw Exception('File not found at $filePath');
+    }
+    final content = await file.readAsString();
+    final title = parseTitle(content, p.basenameWithoutExtension(filePath));
+
+    // 依序嘗試匹配主模板
+    final itineraryBlueprint = allBlueprints['行程模板'];
+    if (itineraryBlueprint?.fingerprintRegex != null && itineraryBlueprint!.fingerprintRegex!.hasMatch(content)) {
+      final data = parseNote(noteContent: content, blueprint: itineraryBlueprint, allBlueprints: allBlueprints);
+      return ItineraryNote(filePath: filePath, title: title, data: data);
+    }
+    
+    final locationBlueprint = allBlueprints['景點清單模板'];
+    if (locationBlueprint?.fingerprintRegex != null && locationBlueprint!.fingerprintRegex!.hasMatch(content)) {
+       final data = parseNote(noteContent: content, blueprint: locationBlueprint, allBlueprints: allBlueprints);
+       return LocationNote(filePath: filePath, title: title, data: data);
+    }
+
+    return GenericNote(filePath: filePath, title: title, rawContent: content);
+  }
+
 
   // --- Private Helper Functions ---
   List<ParsingRule> _extractRulesFromCompositeTemplate({
@@ -201,6 +247,11 @@ class MarkdownParserService {
       'regex': RegExp(regexString, multiLine: true),
       'placeholders': placeholders,
     };
+  }
+
+  String parseTitle(String content, String fallback) {
+    final h1Match = RegExp(r'^#\s+(.*)').firstMatch(content.trim());
+    return h1Match?.group(1)?.trim() ?? fallback;
   }
 }
 

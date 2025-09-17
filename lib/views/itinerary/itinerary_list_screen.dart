@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vault_trip/providers/parsed_notes_provider.dart';
+import 'package:path/path.dart' as p;
 import '../../models/parsed_notes.dart';
-import '../../providers/itinerary_provider.dart';
 import 'itinerary_detail_screen.dart';
 
 class ItineraryListScreen extends ConsumerWidget {
@@ -9,65 +10,89 @@ class ItineraryListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final itineraryState = ref.watch(itineraryProvider);
+    final parsedNotesAsync = ref.watch(parsedNotesProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('行程導覽')),
       body: Builder(
         builder: (context) {
-          if (itineraryState.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          return parsedNotesAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            data: (states) {
+              if (states.notes.isEmpty) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text(
+                      '沒有找到行程筆記。\n請確保您的筆記符合行程模板的結構。',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                );
+              }
+              final itineraryNotes = states.notes
+                  .whereType<ItineraryNote>()
+                  .toList();
+              itineraryNotes.sort(
+                (a, b) =>
+                    p.basename(a.filePath).compareTo(p.basename(b.filePath)),
+              );
+              return RefreshIndicator(
+                onRefresh: () => ref.read(parsedNotesProvider.notifier).updateNotes(),
+                child: ListView.builder(
+                  itemCount: itineraryNotes.length,
+                  itemBuilder: (context, index) {
+                    final ItineraryNote note = itineraryNotes[index];
+                    // 嘗試從 data Map 中獲取行程概要（唯一其data.values 是一個 List）
+                    final summaryList = note.data.values.firstWhere(
+                      (value) => value is List,
+                      orElse: () => [], // 如果沒找到，回傳一個空列表以避免錯誤
+                    );
+                    final dayCount = (summaryList as List).length;
 
-          if (itineraryState.notes.isEmpty) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  '沒有找到行程筆記。\n請確保您的筆記符合行程模板的結構。',
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            );
-          }
-
-          // 如果有筆記，就用 ListView 顯示
-          return ListView.builder(
-            itemCount: itineraryState.notes.length,
-            itemBuilder: (context, index) {
-              final ItineraryNote note = itineraryState.notes[index];
-              // 嘗試從 data Map 中獲取行程概要
-              final summary = note.data['📋 行程概要'];
-              final dayCount = (summary is List) ? summary.length : 0;
-
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: ListTile(
-                  leading: const Icon(Icons.flight_takeoff, size: 32),
-                  title: Text(note.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('共 $dayCount 天行程'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    // 點擊後，導航到詳細頁面，並將整個 note 物件傳過去
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ItineraryDetailScreen(note: note),
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: ListTile(
+                        leading: const Icon(Icons.flight_takeoff, size: 32),
+                        title: Text(
+                          note.title,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text('共 $dayCount 天行程'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          // 點擊後，導航到詳細頁面，並將整個 note 物件傳過去
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ItineraryDetailScreen(note: note),
+                            ),
+                          );
+                        },
                       ),
                     );
                   },
                 ),
               );
             },
+            error: (e, s) => Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('發生錯誤：$e', textAlign: TextAlign.center),
+              ),
+            ),
           );
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           // 呼叫 Notifier 的方法來觸發掃描和解析
-          ref.read(itineraryProvider.notifier).loadAll();
+          ref.read(parsedNotesProvider.notifier).updateNotes();
         },
         icon: const Icon(Icons.refresh),
-        label: const Text('掃描 Vault'),
+        label: const Text('更新行程'),
       ),
     );
   }

@@ -35,12 +35,6 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
     );
   }
   
-
-  Future<void> loadSettings() async {
-    if (!state.isLoading) return;
-    
-  }
-
   Future<void> selectAndSaveVaultPath() async {
     final path = await pickFolder();
     final prefs = SharedPreferencesAsync();
@@ -84,7 +78,11 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
     state = AsyncValue.data(state.value!.copyWith(isLoading: true));
     final prefs = SharedPreferencesAsync();
     await prefs.remove(_vaultPathKey);
-    state = AsyncValue.data(state.value!.copyWith(vaultPath: null, isLoading: false));
+    await prefs.remove(itineraryTemplatePathKey);
+    await prefs.remove(itineraryDayTemplatePathKey);
+    await prefs.remove(locationListTemplatePathKey);
+    await prefs.remove(locationItemTemplatePathKey);
+    state = AsyncValue.data(SettingsState(isLoading: false));
   }
 }
 

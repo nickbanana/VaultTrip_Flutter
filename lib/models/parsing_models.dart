@@ -20,11 +20,14 @@ class TemplateBlueprint {
   final List<ParsingRule> rules;
   /// 專門用於解析子項目的正規表達式
   final RegExp? itemRegex;
+  /// 獨特用於識別筆記類型的正規表達式
+  final RegExp? fingerprintRegex;
   final List<String>? itemPlaceholderNames;
   TemplateBlueprint({
     required this.name,
     required this.rules,
     this.itemRegex,
     this.itemPlaceholderNames,
+    this.fingerprintRegex,
   });
 }

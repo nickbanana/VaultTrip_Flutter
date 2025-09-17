@@ -13,9 +13,7 @@ class ItineraryDetailScreen extends StatelessWidget {
     final topLevelKeys = note.data.keys.toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(note.title),
-      ),
+      appBar: AppBar(title: Text(note.title)),
       body: ListView.builder(
         padding: const EdgeInsets.all(8.0),
         itemCount: topLevelKeys.length,
@@ -36,11 +34,11 @@ class ItineraryDetailScreen extends StatelessWidget {
                   Text(
                     key,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const Divider(height: 24),
-                  
+
                   // --- 動態渲染區塊內容 ---
                   _buildSectionContent(value),
                 ],
@@ -63,15 +61,37 @@ class ItineraryDetailScreen extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: items.map((item) {
-          final dateStr = "### 📆 ${item['月'] ?? '?'}/${item['日'] ?? '?'}（${item['星期幾'] ?? ''}）";
+          final dateStr =
+              "### 📆 ${item['年'] ?? '?'}/${item['月'] ?? '?'}/${item['日'] ?? '?'}（${item['星期幾'] ?? ''}）";
+          final dayContent = item['內容'] as String?;
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 4.0),
             // 使用 Markdown 來渲染 H3 標題，保持樣式一致
-            child: MarkdownBlock(data: dateStr, config: MarkdownConfig(
-              configs: [
-                H3Config(style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-              ]
-            ))
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                MarkdownBlock(
+                  data: dateStr,
+                  config: MarkdownConfig(
+                    configs: [
+                      H3Config(
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (dayContent != null && dayContent.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8.0, top: 4.0),
+                    child: MarkdownBlock(
+                      data: dayContent,
+                    ),
+                  ),
+              ],
+            ),
           );
         }).toList(),
       );
@@ -81,7 +101,7 @@ class ItineraryDetailScreen extends StatelessWidget {
     if (value is String && value.trim().isNotEmpty) {
       return MarkdownBlock(data: value);
     }
-    
+
     // 如果區塊是空的或類型未知
     return const Text('此區塊沒有內容。', style: TextStyle(color: Colors.grey));
   }
