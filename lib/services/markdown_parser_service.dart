@@ -41,6 +41,7 @@ class MarkdownParserService {
         subTemplatePlaceholder: '{{多筆景點項目模板}}',
         subTemplateName: '景點項目模板',
       ),
+      fingerprintRegex: createFingerprintRegexFromHeadings(locationListTplContent),
     );
 
     // 3. 分析行程單日模板 (類似景點項目)
@@ -103,9 +104,9 @@ class MarkdownParserService {
       commitCurrentItem(); // 先提交最後一個子項目
       if (currentH2Key != null) {
         if (currentH2Rule?.subTemplateName != null) {
-          result[currentH2Key!] = List.from(currentItemsList);
+          result[currentH2Key] = List.from(currentItemsList);
         } else {
-          result[currentH2Key!] = currentBlockContent.join('\n').trim();
+          result[currentH2Key] = currentBlockContent.join('\n').trim();
         }
       }
       currentBlockContent = [];
@@ -187,6 +188,40 @@ class MarkdownParserService {
     return GenericNote(filePath: filePath, title: title, rawContent: content);
   }
 
+  RegExp? createFingerprintRegexFromHeadings(String? templateContent) {
+    if (templateContent == null || templateContent.isEmpty) {
+      return null;
+    }
+    // 尋找所有h2標題
+    final h2Regex = RegExp(r'^##\s+(.*)', multiLine: true);
+    final matches = h2Regex.allMatches(templateContent);
+
+    if (matches.isEmpty) {
+      return null;
+    }
+
+    // 提取每個標題的第一個字元，並用 Set 去除重複項
+    final fingerprints = matches.map((match) {
+      final headingText = match.group(1)?.trim();
+      if (headingText != null && headingText.isNotEmpty) {
+        // 使用 runes 來安全地獲取第一個字元，這對複雜 Emoji 很重要
+        return String.fromCharCode(headingText.runes.first);
+      }
+      return null;
+    }).whereType<String>().toSet();
+    
+    if (fingerprints.isEmpty) {
+      return null;
+    }
+    
+    // 將所有 Emoji 用 '|' (OR) 連接起來，例如 "🏨|🗺️|🛍️"
+    final joinedFingerprints = fingerprints.map(RegExp.escape).join('|');
+    
+    // 組成最終的正規表示式，例如 "^##\\s*(🏨|🗺️|🛍️)"
+    final regexString = '^##\\s*($joinedFingerprints)';
+    
+    return RegExp(regexString, multiLine: true);
+  }
 
   // --- Private Helper Functions ---
   List<ParsingRule> _extractRulesFromCompositeTemplate({
@@ -196,23 +231,39 @@ class MarkdownParserService {
   }) {
     final rules = <ParsingRule>[];
     final lines = content.split('\n');
-    for (final line in lines) {
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i];
       final h2Match = RegExp(r'^##\s+(.*)').firstMatch(line);
       if (h2Match != null) {
         final key = h2Match.group(1)!.trim();
-        rules.add(
-          ParsingRule(
-            level: 2,
-            key: key,
-            // 檢查下一行是否是 placeholder
-            subTemplateName:
-                lines.indexOf(line) + 1 < lines.length &&
-                    lines[lines.indexOf(line) + 1].trim() ==
-                        subTemplatePlaceholder
-                ? subTemplateName
-                : null,
-          ),
-        );
+        String? detectedSubTemplateName;
+
+        // --- 【核心修正】 ---
+        // 找到 H2 標題後，開始向前掃描尋找 placeholder
+        for (int j = i + 1; j < lines.length; j++) {
+          final nextLine = lines[j].trim();
+          
+          if (nextLine.isEmpty) {
+            // 如果是空行，就繼續往下找
+            continue;
+          }
+          
+          if (nextLine == subTemplatePlaceholder) {
+            // 找到了！標記這是一個複合區塊
+            detectedSubTemplateName = subTemplateName;
+          }
+          
+          // 無論找到與否，只要遇到第一個非空行就停止對當前 H2 的掃描
+          // 因為 placeholder 必須是 H2 後的第一個有意義的內容
+          break;
+        }
+        // --- 【修正結束】 ---
+
+        rules.add(ParsingRule(
+          level: 2,
+          key: key,
+          subTemplateName: detectedSubTemplateName,
+        ));
       }
     }
     return rules;

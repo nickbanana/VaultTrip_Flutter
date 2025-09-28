@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vault_trip/views/document/document.dart';
 import 'package:vault_trip/views/home/home.dart';
 import 'package:vault_trip/views/itinerary/itinerary_list_screen.dart';
-import 'package:vault_trip/views/location/location.dart';
+import 'package:vault_trip/views/location/location_list_screen.dart';
 import 'package:vault_trip/views/setting/setting.dart';
-import 'package:vault_trip/views/itinerary/travel_plan.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
   runApp(ProviderScope(child: MyApp()));
@@ -43,7 +42,7 @@ class MainPageState extends State<MainPage> {
   final List<Widget> _pages = [
     HomeWidget(),
     ItineraryListScreen(),
-    LocationWidget(),
+    LocationListScreen(),
     DocumentWidget(),
     SettingWidget(),
   ];
