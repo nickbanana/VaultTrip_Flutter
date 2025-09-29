@@ -42,6 +42,10 @@ class LocationListScreen extends ConsumerWidget {
                   itemCount: locationNotes.length,
                   itemBuilder: (context, index) {
                     final LocationNote note = locationNotes[index];
+                    final totalItemCount = note.data.values
+                      .whereType<List>()
+                      .map((l) => l.length)
+                      .fold(0, (a, b) => a + b);
                     return Card(
                       margin: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -53,7 +57,7 @@ class LocationListScreen extends ConsumerWidget {
                           note.title,
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        subtitle: Text('共 ${note.data.length} 個景點'),
+                        subtitle: Text('共 $totalItemCount 個景點'),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
                           // 點擊後，導航到詳細頁面，並將整個 note 物件傳過去

@@ -22,14 +22,15 @@ class MarkdownParserService {
   }) {
     final Map<String, TemplateBlueprint> blueprints = {};
     // 1. 分析景點項目模板 (最底層)
-    final locationItemRegex = _createRegexFromItemTemplate(
+    final locationItemRegex = analyzeItemTemplate(
       locationItemTplContent,
     );
     blueprints['景點項目模板'] = TemplateBlueprint(
       name: '景點項目模板',
       rules: [], // 它本身沒有 H2/H3 規則
-      itemRegex: locationItemRegex['regex'],
-      itemPlaceholderNames: locationItemRegex['placeholders'],
+      itemHeaderRegex: locationItemRegex['itemHeaderRegex'],
+      itemHeaderPlaceholders: locationItemRegex['itemHeaderPlaceholders'],
+      itemBodyKeywords: locationItemRegex['itemBodyKeywords'],
     );
 
     // 2. 分析景點清單模板
@@ -45,12 +46,13 @@ class MarkdownParserService {
     );
 
     // 3. 分析行程單日模板 (類似景點項目)
-    final dayItemRegex = _createRegexFromItemTemplate(itineraryDayTplContent);
+    final dayItemRegex = analyzeItemTemplate(itineraryDayTplContent);
     blueprints['行程單日模板'] = TemplateBlueprint(
       name: '行程單日模板',
       rules: [],
-      itemRegex: dayItemRegex['regex'],
-      itemPlaceholderNames: dayItemRegex['placeholders'],
+      itemHeaderRegex: dayItemRegex['itemHeaderRegex'],
+      itemHeaderPlaceholders: dayItemRegex['itemHeaderPlaceholders'],
+      itemBodyKeywords: dayItemRegex['itemBodyKeywords'],
     );
 
     // 4. 分析行程模板
@@ -61,7 +63,7 @@ class MarkdownParserService {
         subTemplatePlaceholder: '{{多筆行程單日模板}}',
         subTemplateName: '行程單日模板',
       ),
-      fingerprintRegex: blueprints['行程單日模板']!.itemRegex,
+      fingerprintRegex: blueprints['行程單日模板']!.itemHeaderRegex,
     );
 
     return blueprints;
@@ -133,12 +135,12 @@ class MarkdownParserService {
         commitCurrentItem(); // 提交上一個子項目
         
         final subTemplate = allBlueprints[currentH2Rule!.subTemplateName!];
-        if (subTemplate?.itemRegex != null) {
-          final itemHeaderMatch = subTemplate!.itemRegex!.firstMatch(line);
+        if (subTemplate?.itemHeaderRegex != null) {
+          final itemHeaderMatch = subTemplate!.itemHeaderRegex!.firstMatch(line);
           if (itemHeaderMatch != null) {
             currentItemData = {};
-            for (int i = 0; i < subTemplate.itemPlaceholderNames!.length; i++) {
-              final key = subTemplate.itemPlaceholderNames![i];
+            for (int i = 0; i < subTemplate.itemHeaderPlaceholders!.length; i++) {
+              final key = subTemplate.itemHeaderPlaceholders![i];
               final value = itemHeaderMatch.group(i + 1)?.trim() ?? '';
               currentItemData![key] = value;
             }
@@ -269,6 +271,35 @@ class MarkdownParserService {
     return rules;
   }
 
+  Map<String, dynamic> analyzeItemTemplate(String templateContent) {
+    final lines = templateContent.split('\n').where((l) => l.trim().isNotEmpty).toList();
+    if (lines.isEmpty) return {};
+
+    // 1. 分析標頭 (第一行)
+    final headerLine = lines.first;
+    final headerRegexResult = _createRegexFromItemTemplate(headerLine);
+
+    // 2. 分析內容 (剩餘行)
+    final Map<String, String> bodyKeywords = {};
+    for (int i = 1; i < lines.length; i++) {
+      final line = lines[i];
+      if (line.contains('：') && line.contains('{{')) {
+        final keyword = line.substring(0, line.indexOf('：') + 1).trim().replaceFirst('-', '').trim();
+        final placeholderMatches = RegExp(r'\{\{(.*)\}\}').allMatches(line);
+        for (final match in placeholderMatches) {
+          final placeholder = match.group(1)!;
+          bodyKeywords[placeholder] = keyword;
+        }
+      }
+    }
+
+    return {
+      'itemHeaderRegex': headerRegexResult['regex'],
+      'itemHeaderPlaceholders': headerRegexResult['placeholders'],
+      'itemBodyKeywords': bodyKeywords,
+    };
+  }
+
   /// 將模板字串轉換成一個強大的正規表示式 (修正版)
   Map<String, dynamic> _createRegexFromItemTemplate(String templateContent) {
     // 1. 依序找出所有 placeholder 的名稱
@@ -284,16 +315,15 @@ class MarkdownParserService {
     // 3. 對每一個靜態文字片段進行轉義，以防其中包含 RegExp 的特殊字元
     final escapedParts = parts.map((part) => RegExp.escape(part)).toList();
 
-    // 4. 將轉義後的文字片段用擷取群組 '(.*?)' 重新組合起來
-    var regexString = '';
+    // 4. 【核心修正】重新組合
+    var regexString = '^';
     for (int i = 0; i < escapedParts.length; i++) {
       regexString += escapedParts[i];
-      // 在除了最後一個片段以外的每個片段後面加上擷取群組
       if (i < placeholders.length) {
-        regexString += '(.*?)';
+        regexString += r'(.*)';
       }
     }
-
+    
     return {
       'regex': RegExp(regexString, multiLine: true),
       'placeholders': placeholders,

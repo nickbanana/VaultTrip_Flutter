@@ -19,15 +19,17 @@ class TemplateBlueprint {
   /// 此模板包含的所有H2/H3 規則
   final List<ParsingRule> rules;
   /// 專門用於解析子項目的正規表達式
-  final RegExp? itemRegex;
+  final RegExp? itemHeaderRegex;
   /// 獨特用於識別筆記類型的正規表達式
   final RegExp? fingerprintRegex;
-  final List<String>? itemPlaceholderNames;
+  final List<String>? itemHeaderPlaceholders;
+  final Map<String, String>? itemBodyKeywords;
   TemplateBlueprint({
     required this.name,
     required this.rules,
-    this.itemRegex,
-    this.itemPlaceholderNames,
+    this.itemHeaderRegex,
+    this.itemHeaderPlaceholders,
     this.fingerprintRegex,
+    this.itemBodyKeywords,
   });
 }
