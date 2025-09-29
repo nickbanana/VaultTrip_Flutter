@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:vault_trip/views/home/component/document_section.dart';
-import 'package:vault_trip/views/home/component/point_of_interest_section.dart';
-import 'package:vault_trip/views/home/component/travel_plan_section.dart';
 
 class HomeWidget extends StatelessWidget {
   const HomeWidget({super.key});
@@ -10,12 +7,8 @@ class HomeWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('首頁')),
-      body: Column(
-        children: [
-          Expanded(child: TravelPlanSectionWidget()),
-          Expanded(child: PointOfInterestSectionWidget()),
-          Expanded(child: DocumentSectionWidget()),
-        ],
+      body: const Center(
+        child: Text('首頁'),
       ),
     );
   }
