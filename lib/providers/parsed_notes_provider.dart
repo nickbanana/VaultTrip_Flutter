@@ -8,6 +8,8 @@ import 'package:vault_trip/providers/all_vault_files_provider.dart';
 import 'package:vault_trip/providers/settings_provider.dart';
 import 'package:vault_trip/providers/template_provider.dart';
 import 'package:vault_trip/services/markdown_parser_service.dart';
+import 'package:vault_trip/providers/places_service_provider.dart';
+import 'package:vault_trip/providers/places_cache_provider.dart';
 
 class ParsedNotesState {
   final bool isLoading;
@@ -67,12 +69,67 @@ class ParsedNotesNotifier extends AsyncNotifier<ParsedNotesState> {
       'templateRelativePaths': templateRelativePaths,
       'vaultPath': vaultPath,
     });
+
+    // 解析完成後，搜尋並快取所有景點的 Place ID
+    await _fetchAndCachePlaceIds(parsedNotes);
+
     return ParsedNotesState(isLoading: false, notes: parsedNotes);
   }
 
   Future<void> updateNotes() async {
     ref.invalidateSelf();
     await future;
+  }
+
+  /// 從所有 LocationNote 中提取景點資料，並呼叫 Places API 快取 Place ID
+  Future<void> _fetchAndCachePlaceIds(List<ParsedNote> parsedNotes) async {
+    final placesService = ref.read(placesServiceProvider);
+    if (placesService == null) {
+      debugPrint('PlacesService not available, skipping Place ID caching');
+      return;
+    }
+
+    final cacheNotifier = ref.read(placesCacheProvider.notifier);
+
+    // 收集所有景點資料
+    final List<Map<String, dynamic>> locations = [];
+    for (final note in parsedNotes) {
+      if (note is LocationNote) {
+        // 從 LocationNote 的 data 中提取景點列表
+        for (final entry in note.data.entries) {
+          final value = entry.value;
+          if (value is List) {
+            // 這是一個景點列表
+            for (final item in value) {
+              if (item is Map<String, dynamic>) {
+                // 檢查是否包含必要的欄位
+                if (item.containsKey('景點名稱') &&
+                    item.containsKey('緯度') &&
+                    item.containsKey('經度')) {
+                  locations.add(item);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (locations.isEmpty) {
+      debugPrint('No locations found for Place ID caching');
+      return;
+    }
+
+    debugPrint('Found ${locations.length} locations, fetching Place IDs...');
+
+    // 批次搜尋 Place ID
+    final placeIds = await placesService.batchSearchPlaceIds(locations);
+
+    // 儲存到快取
+    if (placeIds.isNotEmpty) {
+      cacheNotifier.addMultiplePlaceIds(placeIds);
+      debugPrint('Successfully cached ${placeIds.length} Place IDs');
+    }
   }
 }
 

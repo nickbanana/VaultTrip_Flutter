@@ -9,6 +9,7 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
   static const String itineraryDayTemplatePathKey = 'itinerary_day_template_path';
   static const String locationListTemplatePathKey = 'location_list_template_path';
   static const String locationItemTemplatePathKey = 'location_item_template_path';
+
   @override
   Future<SettingsState> build() async {
     final prefs = SharedPreferencesAsync();
@@ -25,6 +26,7 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
     final savedLocationTemplatePath = await prefs.getString(
       locationItemTemplatePathKey,
     );
+
     return SettingsState(
       vaultPath: savedVaultPath,
       itineraryTemplatePath: savedItineraryTemplatePath,

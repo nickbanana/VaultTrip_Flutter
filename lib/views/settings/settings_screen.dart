@@ -143,7 +143,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const Divider(height: 16),
+                const Divider(height: 32),
                 TemplateSettingWidget(
                   templateType: '行程模板',
                   templatePath: settingsState.itineraryTemplatePath,
