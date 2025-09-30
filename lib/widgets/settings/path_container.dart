@@ -21,7 +21,7 @@ class PathContainer extends StatelessWidget {
         path ?? '未選擇',
         style: TextStyle(
           fontSize: 16,
-          color: path == null ? Colors.grey[600] : Colors.black,
+          color: path == null ? Colors.grey : Theme.of(context).colorScheme.onSurface,
         ),
       ),
     );

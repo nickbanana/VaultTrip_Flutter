@@ -5,9 +5,9 @@ import 'package:path/path.dart' as p;
 import '../../providers/vault_provider.dart';
 import 'note_viewer_screen.dart';
 
-class DocumentWidget extends ConsumerWidget {
+class VaultBrowserScreen extends ConsumerWidget {
   final bool isSelectMode;
-  const DocumentWidget({
+  const VaultBrowserScreen({
     super.key,
     this.isSelectMode = false,
   });

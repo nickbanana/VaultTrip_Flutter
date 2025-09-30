@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vault_trip/views/document/document.dart';
-import 'package:vault_trip/views/home/home.dart';
+import 'package:vault_trip/views/vault_browser/vault_browser_screen.dart';
+import 'package:vault_trip/views/home/home_screen.dart';
 import 'package:vault_trip/views/itinerary/itinerary_list_screen.dart';
 import 'package:vault_trip/views/location/location_list_screen.dart';
-import 'package:vault_trip/views/setting/setting.dart';
+import 'package:vault_trip/views/settings/settings_screen.dart';
 
 void main() {
   runApp(ProviderScope(child: MyApp()));
@@ -18,13 +18,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Vault Trip',
       themeMode: ThemeMode.dark,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
-        useMaterial3: true,
-      ),
+      theme: ThemeData.light(useMaterial3: true),
+      darkTheme: ThemeData.dark(useMaterial3: true),
       home: const MainPage(),
     );
   }
@@ -40,11 +35,11 @@ class MainPage extends StatefulWidget {
 class MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
   final List<Widget> _pages = [
-    HomeWidget(),
+    HomeScreen(),
     ItineraryListScreen(),
     LocationListScreen(),
-    DocumentWidget(),
-    SettingWidget(),
+    VaultBrowserScreen(),
+    SettingsScreen(),
   ];
 
   @override

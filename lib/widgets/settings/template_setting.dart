@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vault_trip/views/setting/path_container.dart';
+import 'package:vault_trip/widgets/settings/path_container.dart';
 
 class TemplateSettingWidget extends StatelessWidget {
   final String templateType;

@@ -13,7 +13,9 @@ class ItineraryListScreen extends ConsumerWidget {
     final parsedNotesAsync = ref.watch(parsedNotesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('行程導覽')),
+      appBar: AppBar(
+        title: const Text('行程導覽'),
+      ),
       body: Builder(
         builder: (context) {
           return parsedNotesAsync.when(
@@ -53,10 +55,15 @@ class ItineraryListScreen extends ConsumerWidget {
                     return Card(
                       margin: const EdgeInsets.symmetric(
                         horizontal: 16,
-                        vertical: 8,
+                        vertical: 4,
                       ),
                       child: ListTile(
-                        leading: const Icon(Icons.flight_takeoff, size: 32),
+                        dense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        leading: const Icon(Icons.flight_takeoff, size: 24),
                         title: Text(
                           note.title,
                           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -85,14 +92,6 @@ class ItineraryListScreen extends ConsumerWidget {
             ),
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // 呼叫 Notifier 的方法來觸發掃描和解析
-          ref.read(parsedNotesProvider.notifier).updateNotes();
-        },
-        icon: const Icon(Icons.refresh),
-        label: const Text('更新行程'),
       ),
     );
   }

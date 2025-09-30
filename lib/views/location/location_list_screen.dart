@@ -12,7 +12,9 @@ class LocationListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final parsedNotesAsync = ref.watch(parsedNotesProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('景點導覽')),
+      appBar: AppBar(
+        title: const Text('景點導覽'),
+      ),
       body: Builder(
         builder: (context) {
           return parsedNotesAsync.when(

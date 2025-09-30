@@ -13,7 +13,9 @@ class ItineraryDetailScreen extends StatelessWidget {
     final topLevelKeys = note.data.keys.toList();
 
     return Scaffold(
-      appBar: AppBar(title: Text(note.title)),
+      appBar: AppBar(
+        title: Text(note.title),
+      ),
       body: ListView.builder(
         padding: const EdgeInsets.all(8.0),
         itemCount: topLevelKeys.length,

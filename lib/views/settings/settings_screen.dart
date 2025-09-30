@@ -3,12 +3,12 @@ import 'package:path/path.dart' as p;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:vault_trip/providers/settings_provider.dart';
-import 'package:vault_trip/views/document/document.dart';
-import 'package:vault_trip/views/setting/path_container.dart';
-import 'package:vault_trip/views/setting/template_setting.dart';
+import 'package:vault_trip/views/vault_browser/vault_browser_screen.dart';
+import 'package:vault_trip/widgets/settings/path_container.dart';
+import 'package:vault_trip/widgets/settings/template_setting.dart';
 
-class SettingWidget extends ConsumerWidget {
-  const SettingWidget({super.key});
+class SettingsScreen extends ConsumerWidget {
+  const SettingsScreen({super.key});
 
   Future<void> _pickTemplateFile(
     BuildContext context,
@@ -33,7 +33,7 @@ class SettingWidget extends ConsumerWidget {
       return;
     }
     final selectedAbsolutePath = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => DocumentWidget(isSelectMode: true)),
+      MaterialPageRoute(builder: (_) => VaultBrowserScreen(isSelectMode: true)),
     );
 
     if (selectedAbsolutePath != null) {
@@ -57,7 +57,9 @@ class SettingWidget extends ConsumerWidget {
     return settingsState.when(
       data: (settingsState) {
         return Scaffold(
-          appBar: AppBar(title: const Text('設定')),
+          appBar: AppBar(
+            title: const Text('設定'),
+          ),
           body: Padding(
             padding: const EdgeInsets.all(16.0),
             child: ListView(
