@@ -1,20 +1,25 @@
 {
     "configurations": [
         {
-            "name": "vault_trip_debug (Flutter ASUSAI2501H)",
+            "name": "vault_trip_debug (Flutter android app)",
             "program": "lib/main.dart",
-            "deviceId": "SCAIOC6478905FA",
             "request": "launch",
             "type": "dart",
             "flutterMode": "debug"
         },
         {
-            "name": "vault_trip_profile (Flutter ASUSAI2501H)",
+            "name": "vault_trip_profile (Flutter android app)",
             "program": "lib/main.dart",
-            "deviceId": "SCAIOC6478905FA",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile"
+        },
+        {
+            "name": "vault_trip_release (Flutter android app)",
+            "program": "lib/main.dart",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
         }
     ]
 }
