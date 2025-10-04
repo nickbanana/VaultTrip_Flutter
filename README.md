@@ -1,16 +1,16 @@
-# vault_trip
+# vault_trip (蕉遊)
 
-A new Flutter project.
+一個將旅遊markdown筆記視覺化的App，根據markdown模板來分析筆記
 
-## Getting Started
+## 目前功能
 
-This project is a starting point for a Flutter application.
+- 選擇筆記資料夾/模板路徑
+- markdown檔案瀏覽
+- 景點瀏覽（包含地圖）
+- 行程瀏覽
 
-A few resources to get you started if this is your first Flutter project:
+## 未來可加入
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- 更好的模板彈性
+- 當日/未來行程（放在首頁）
+- 路徑安排
